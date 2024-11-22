@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>M3U 播放器</title>
+    <title>M3U Player</title>
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -247,6 +247,42 @@
                 left: -25px;
             }
         }
+
+        /* 新增空播放清單提示樣式 */
+        .empty-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* 檔案輸入提示文字 */
+        .file-input-container::before {
+            content: 'Select M3U file';
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-color);
+        }
+
+        /* 載入中提示樣式 */
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading::after {
+            content: 'Loading...';
+        }
+
+        /* 錯誤提示樣式 */
+        .error-message {
+            color: #ff4444;
+            padding: 10px;
+            text-align: center;
+            background: rgba(255, 0, 0, 0.1);
+            border-radius: 4px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 
@@ -255,7 +291,7 @@
         <!-- 影片播放器區塊 -->
         <div class="player-section">
             <video id="videoPlayer" class="video-js vjs-default-skin">
-                <p class="vjs-no-js">請啟用 JavaScript 以觀看影片</p>
+                <p class="vjs-no-js">Please enable JavaScript to view this video</p>
             </video>
         </div>
 
@@ -270,7 +306,7 @@
                 <!-- 播放清單標題 -->
                 <div class="playlist-header">
                     <div class="header-top">
-                        <h2>播放清單</h2>
+                        <h2>Playlist</h2>
                         <!-- 深色模式按鈕 -->
                         <button id="darkModeToggle" class="dark-mode-btn">
                             <i class="fas fa-moon"></i>
