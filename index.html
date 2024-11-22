@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M3U 播放器</title>
+    <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* CSS 變數定義 - 淺色主題 */
+        :root {
+            --bg-color: #ffffff;
+            /* 背景顏色 */
+            --text-color: #333333;
+            /* 文字顏色 */
+            --playlist-bg: #f5f5f5;
+            /* 播放清單背景顏色 */
+            --item-hover: #e0e0e0;
+            /* 項目滑過時的背景顏色 */
+            --item-active: #d0d0d0;
+            /* 選中項目的背景顏色 */
+            --border-color: #ddd;
+            /* 邊框顏色 */
+        }
+
+        /* 深色主題變數 */
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            /* 背景顏色 */
+            --text-color: #ffffff;
+            /* 文字顏色 */
+            --playlist-bg: #2d2d2d;
+            /* 播放清單背景顏色 */
+            --item-hover: #3d3d3d;
+            /* 項目滑過時的背景顏色 */
+            --item-active: #4d4d4d;
+            /* 選中項目的背景顏色 */
+            --border-color: #404040;
+            /* 邊框顏色 */
+        }
+
+        /* 基本樣式設定 */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* 容器樣式 */
+        .container {
+            display: flex;
+            position: relative;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 播放器區塊樣式 */
+        .player-section {
+            flex: 1;
+            transition: margin-right 0.3s ease;
+        }
+
+        /* 播放清單區塊樣式 */
+        .playlist-section {
+            position: fixed;
+            right: 0;
+            top: 0;
+            height: 100vh;
+            width: 300px;
+            background: var(--playlist-bg);
+            transition: transform 0.3s ease;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 摺疊狀態樣式 */
+        .playlist-section.collapsed {
+            transform: translateX(calc(100% - 30px));
+        }
+
+        /* 切換按鈕樣式 */
+        .toggle-btn {
+            position: absolute;
+            left: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 60px;
+            background: var(--playlist-bg);
+            border: none;
+            border-radius: 5px 0 0 5px;
+            cursor: pointer;
+        }
+
+        /* 切換按鈕圖標樣式 */
+        .toggle-btn i {
+            transition: transform 0.3s ease;
+        }
+
+        /* 摺疊狀態時的圖標旋轉 */
+        .playlist-section.collapsed .toggle-btn i {
+            transform: rotate(180deg);
+        }
+
+        /* 影片播放器樣式 */
+        .video-js {
+            width: 100%;
+            height: 800px;
+        }
+
+        /* 播放清單內容樣式 */
+        .playlist-content {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+        }
+
+        /* 播放清單樣式 */
+        #playlist {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* 播放清單項目樣式 */
+        #playlist li {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+            color: var(--text-color);
+        }
+
+        /* 播放清單項目滑過時的背景顏色 */
+        #playlist li:hover {
+            background-color: var(--item-hover);
+        }
+
+        /* 選中項目的背景顏色 */
+        #playlist li.active {
+            background-color: var(--item-active);
+            font-weight: bold;
+        }
+
+        /* 檔案輸入容器樣式 */
+        .file-input-container {
+            margin-bottom: 15px;
+        }
+
+        /* 播放清單標題樣式 */
+        .playlist-header {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        /* 標題上方區塊樣式 */
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        /* 深色模式按鈕樣式 */
+        .dark-mode-btn {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background-color 0.3s;
+        }
+
+        /* 深色模式按鈕滑過時的背景顏色 */
+        .dark-mode-btn:hover {
+            background-color: var(--item-hover);
+        }
+
+        /* 捲軸樣式 */
+        #playlist::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        /* 捲軸軌道樣式 */
+        #playlist::-webkit-scrollbar-track {
+            background: var(--playlist-bg);
+        }
+
+        /* 捲軸滑塊樣式 */
+        #playlist::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+
+        /* 捲軸滑塊滑過時的背景顏色 */
+        #playlist::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Video.js 深色模式樣式 */
+        [data-theme="dark"] .video-js {
+            background-color: #000;
+        }
+
+        /* Video.js 控制列深色模式樣式 */
+        [data-theme="dark"] .vjs-control-bar {
+            background-color: rgba(38, 38, 38, 0.9);
+        }
+
+        /* 新增 RWD 相關樣式 */
+        @media screen and (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .player-section {
+                margin-right: 30px !important;
+            }
+
+            .playlist-section {
+                width: 80%;
+                /* 手機版播放清單寬度 */
+                max-width: 300px;
+            }
+
+            .video-js {
+                height: 40vh !important;
+                /* 視口高度的 40% */
+                max-height: 300px !important;
+            }
+
+            .playlist-section.collapsed {
+                transform: translateX(100%);
+            }
+
+            .toggle-btn {
+                width: 25px;
+                height: 50px;
+                left: -25px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 影片播放器區塊 -->
+        <div class="player-section">
+            <video id="videoPlayer" class="video-js vjs-default-skin">
+                <p class="vjs-no-js">請啟用 JavaScript 以觀看影片</p>
+            </video>
+        </div>
+
+        <!-- 播放清單區塊 -->
+        <div class="playlist-section">
+            <!-- 切換按鈕 -->
+            <button class="toggle-btn">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <!-- 播放清單內容 -->
+            <div class="playlist-content">
+                <!-- 播放清單標題 -->
+                <div class="playlist-header">
+                    <div class="header-top">
+                        <h2>播放清單</h2>
+                        <!-- 深色模式按鈕 -->
+                        <button id="darkModeToggle" class="dark-mode-btn">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                    </div>
+                    <!-- 檔案輸入容器 -->
+                    <div class="file-input-container">
+                        <input type="file" id="fileInput" accept=".m3u,.m3u8">
+                    </div>
+                </div>
+                <!-- 播放清單 -->
+                <ul id="playlist"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入 Video.js 和 HLS.js 庫 -->
+    <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <!-- 引入播放器腳本 -->
+    <script src="player.js"></script>
+</body>
+
+</html>
