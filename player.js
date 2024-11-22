@@ -11,12 +11,39 @@ document.addEventListener('DOMContentLoaded', function () {
     player = videojs('videoPlayer', {
         controls: true,// 顯示控制列
         fluid: true,// 自適應容器大小
-        playbackRates: [0.25, 0.5, 1, 1.25, 1.5, 2],// 播放速度選項
+        playbackRates: [0.5, 1, 1.5, 2],// 播放速度選項
         html5: {
             hls: {
                 enableLowInitialPlaylist: true,
                 smoothQualityChange: true,
                 overrideNative: true
+            }
+        },
+        // 新增播放器的英文介面設定
+        controlBar: {
+            playToggle: {
+                tooltip: 'Play/Pause'
+            },
+            volumePanel: {
+                inline: false,
+                volumeControl: {
+                    tooltip: 'Volume'
+                }
+            },
+            currentTimeDisplay: true,
+            timeDivider: true,
+            durationDisplay: true,
+            remainingTimeDisplay: false,
+            progressControl: {
+                seekBar: {
+                    tooltip: 'Seek'
+                }
+            },
+            fullscreenToggle: {
+                tooltip: 'Fullscreen'
+            },
+            playbackRateMenuButton: {
+                tooltip: 'Playback Rate'
             }
         }
     });
@@ -100,6 +127,17 @@ function updateDarkModeIcon(icon, isDark) {
 
 document.getElementById('fileInput').addEventListener('change', function (e) {
     const file = e.target.files[0];
+    if (!file) {
+        alert('Please select a file.');
+        return;
+    }
+
+    if (!file.name.toLowerCase().endsWith('.m3u') &&
+        !file.name.toLowerCase().endsWith('.m3u8')) {
+        alert('Please select a valid M3U/M3U8 file.');
+        return;
+    }
+
     const reader = new FileReader();
 
     reader.onload = function (e) {
@@ -116,26 +154,22 @@ function parseM3U(content) {
     const playlist = [];
     let currentItem = null;
 
-    // 解析 M3U 檔案的每一行
     lines.forEach(line => {
         line = line.trim();
         if (line.startsWith('#EXTINF:')) {
-            // 解析標題資訊（格式：#EXTINF:-1,標題）
             const titleMatch = line.match(/#EXTINF:.*,(.+)/);
             currentItem = {
-                title: titleMatch ? titleMatch[1] : '未命名',
+                title: titleMatch ? titleMatch[1] : 'Untitled',
                 url: ''
             };
         } else if (line && !line.startsWith('#')) {
-            // 解析 URL 資訊
             if (currentItem) {
                 currentItem.url = line;
                 playlist.push(currentItem);
                 currentItem = null;
             } else {
-                // 如果沒有找到標題資訊，則將當前行作為標題
                 playlist.push({
-                    title: line,
+                    title: `Track ${playlist.length + 1}`,
                     url: line
                 });
             }
@@ -284,4 +318,37 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+// 錯誤處理訊息
+function handleError(error) {
+    console.error('Playback error:', error);
+    // 可以加入使用者提示
+    alert('Error playing the video. Please try another file or check the URL.');
+}
+
+// 播放器事件處理
+player.on('error', function (error) {
+    console.error('Video player error:', error);
+    alert('Video playback error. Please try another video.');
+});
+
+// 當影片無法載入時的處理
+function handleVideoLoadError(url) {
+    console.error('Failed to load video:', url);
+    alert('Unable to load the video. Please check the URL or try another video.');
+}
+
+// 播放清單項目格式化
+function formatPlaylistItem(title, index) {
+    return `${index + 1}. ${title}`;
+}
+
+// 當沒有播放內容時的預設訊息
+function showEmptyPlaylistMessage() {
+    const playlistElement = document.getElementById('playlist');
+    const emptyMessage = document.createElement('li');
+    emptyMessage.textContent = 'No items in playlist';
+    emptyMessage.classList.add('empty-message');
+    playlistElement.appendChild(emptyMessage);
 }
