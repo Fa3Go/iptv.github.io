@@ -1,6 +1,6 @@
 # Online M3U Player
 
-A web-based M3U/M3U8 playlist player with a clean interface and support for HLS streams. Visit the live demo at [https://fa3go.github.io/iptv.github.io/](https://fa3go.github.io/iptv.github.io/)
+A web-based M3U/M3U8 playlist player with a clean interface and support for HLS streams. Visit the live demo at [https://fa3go.github.io/iptv.github.io/](https://fa3go.github.io/IptvPlayer.github.io/)
 
 ## Features
 
