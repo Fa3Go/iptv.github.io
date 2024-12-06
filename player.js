@@ -7,43 +7,19 @@ let isMobile = window.innerWidth < MOBILE_BREAKPOINT;
 
 // 初始化播放器和摺疊功能
 document.addEventListener('DOMContentLoaded', function () {
-    // HLS 配置
-    const hlsConfig = {
-        enableHardwareAcceleration: true,    // 啟用硬體加速
-        enableWorker: true,                  // 啟用 Web Worker
-        lowLatencyMode: true,                // 低延遲模式
-        backBufferLength: 90,                // 緩衝區長度（秒）
-        maxBufferSize: 0,                    // 無限制緩衝區大小
-        maxBufferLength: 30,                 // 最大緩衝時長（秒）
-        maxMaxBufferLength: 600,             // 絕對最大緩衝時長（秒）
-        startLevel: -1,                      // 自動選擇起始質量
-        debug: false                         // 關閉除錯模式
-    };
-
-    // Video.js 播放器配置
+    // 初始化播放器
     player = videojs('videoPlayer', {
+        controls: true,// 顯示控制列
+        fluid: true,// 自適應容器大小
+        playbackRates: [0.5, 1, 1.5, 2],// 播放速度選項
         html5: {
             hls: {
-                overrideNative: true,        // 覆蓋原生 HLS
-                useMediaSource: true,         // 使用 Media Source Extensions
                 enableLowInitialPlaylist: true,
                 smoothQualityChange: true,
-                allowSeeksWithinUnsafeLiveWindow: true,
-                handleManifestRedirects: true,
-                useBandwidthFromLocalStorage: true
-            },
-            vhs: {
-                experimentalBufferBasedABR: true,    // 實驗性緩衝自適應碼率
-                useDevicePixelRatio: true,          // 使用設備像素比
-                useNetworkInformationType: true,     // 使用網路資訊
-                useDtsForTimestampOffset: true,      // 使用 DTS 時間戳
-                overrideNative: true,
-                fastQualityChange: true
+                overrideNative: true
             }
         },
-        controls: true,
-        fluid: true,
-        playbackRates: [0.5, 1, 1.5, 2],
+        // 新增播放器的英文介面設定
         controlBar: {
             playToggle: {
                 tooltip: 'Play/Pause'
@@ -80,66 +56,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始化 RWD 功能
     initializeRWD();
-
-    // 初始化 HLS
-    function initHls(url) {
-        if (Hls.isSupported()) {
-            hls = new Hls(hlsConfig);
-            hls.loadSource(url);
-            hls.attachMedia(player.tech().el());
-
-            // HLS 事件監聽
-            hls.on(Hls.Events.MANIFEST_PARSED, function () {
-                player.play();
-            });
-
-            // 錯誤處理
-            hls.on(Hls.Events.ERROR, function (event, data) {
-                if (data.fatal) {
-                    switch (data.type) {
-                        case Hls.ErrorTypes.NETWORK_ERROR:
-                            console.log('Network error, trying to recover...');
-                            hls.startLoad();
-                            break;
-                        case Hls.ErrorTypes.MEDIA_ERROR:
-                            console.log('Media error, trying to recover...');
-                            hls.recoverMediaError();
-                            break;
-                        default:
-                            console.error('Unrecoverable error');
-                            hls.destroy();
-                            break;
-                    }
-                }
-            });
-        }
-    }
-
-    // 修改 loadVideo 函數
-    function loadVideo(url) {
-        if (hls) {
-            hls.destroy();
-        }
-
-        if (url.endsWith('.m3u8')) {
-            if (Hls.isSupported()) {
-                initHls(url);
-            } else if (player.tech().el().canPlayType('application/vnd.apple.mpegurl')) {
-                player.src({
-                    src: url,
-                    type: 'application/x-mpegURL'
-                });
-            }
-        } else {
-            player.src({
-                src: url,
-                type: getVideoType(url)
-            });
-        }
-    }
-
-    // 初始化性能監控
-    monitorPerformance();
 });
 
 // 摺疊功能初始化
@@ -263,6 +179,39 @@ function parseM3U(content) {
     return playlist;
 }
 
+function loadVideo(url) {
+    // 如果已存在 HLS 實例，先銷毀它
+    if (hls) {
+        hls.destroy();
+    }
+
+    // 檢查是否為 HLS 串流
+    if (url.endsWith('.m3u8')) {
+        if (Hls.isSupported()) {
+            // 如果瀏覽器支援 HLS，則初始化 HLS.js
+            hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(player.tech().el());
+            hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                player.play();
+            });
+        }
+        // 對於原生支援 HLS 的瀏覽器（如 Safari）
+        else if (player.tech().el().canPlayType('application/vnd.apple.mpegurl')) {
+            player.src({
+                src: url,
+                type: 'application/x-mpegURL'
+            });
+        }
+    } else {
+        // 處理一般影片檔案
+        player.src({
+            src: url,
+            type: getVideoType(url)
+        });
+    }
+}
+
 // 根據檔案副檔名取得對應的 MIME 類型
 function getVideoType(url) {
     const extension = url.split('.').pop().toLowerCase();
@@ -338,7 +287,7 @@ function initializeRWD() {
 
             // 調整播放器高度以適應手機螢幕
             const viewportHeight = window.innerHeight;
-            const playerHeight = Math.min(viewportHeight * 0.4, 300); // 最大高�� 300px
+            const playerHeight = Math.min(viewportHeight * 0.4, 300); // 最大高度 300px
             player.dimensions('100%', playerHeight);
         } else {
             // 電腦版展開播放清單
@@ -402,16 +351,4 @@ function showEmptyPlaylistMessage() {
     emptyMessage.textContent = 'No items in playlist';
     emptyMessage.classList.add('empty-message');
     playlistElement.appendChild(emptyMessage);
-}
-
-// 新增性能監控
-function monitorPerformance() {
-    if (hls) {
-        setInterval(() => {
-            const stats = hls.stats;
-            console.log('Buffer Length:', stats.bufferedLength);
-            console.log('Dropped Frames:', stats.droppedFrames);
-            console.log('Current Level:', hls.currentLevel);
-        }, 5000);
-    }
 }
